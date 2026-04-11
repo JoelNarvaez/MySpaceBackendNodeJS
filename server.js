@@ -16,6 +16,13 @@ const authRoutes = require("./routes/auth.routes");
 // Middlewares mínimos
 app.use(express.json());
 
+// Logger de requests
+app.use((req, _res, next) => {
+  const now = new Date().toISOString();
+  console.log(`[${now}] ${req.method} ${req.url}`);
+  next();
+});
+
 const ALLOWED_ORIGINS = ["http://127.0.0.1:5501", "http://localhost:5500"];
 
 app.use(

@@ -19,6 +19,14 @@ async function obtenerUserPorCorreo(email) {
     return rows[0];
 }
 
+async function crearUser(nombre, email, hashedPassword, rol = 'user') {
+    const [result] = await pool.query(
+        'INSERT INTO usuarios (nombre, email, contraseña, rol) VALUES (?, ?, ?, ?)',
+        [nombre, email, hashedPassword, rol]
+    );
+    return result.insertId;
+}
+
 module.exports = {
     obtenerUserPorId,
     obtenerUserPorCorreo,
