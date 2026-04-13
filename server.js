@@ -1,64 +1,69 @@
-// Cargar variables de entorno
 require("dotenv").config({ override: true });
 
-const pool = require("./config/db");
-
-// Importar dependencias
 const express = require("express");
-const path = require("path");
 const cors = require("cors");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Importar rutas
-const authRoutes = require("./routes/auth.routes");
+// ── Rutas ────────────────────────────────────────────────────────────────────
+const authRoutes       = require("./src/auth/auth.routes");
+const serviciosRoutes  = require("./src/servicios/servicios.routes");
+const citasRoutes      = require("./src/citas/citas.routes");
+const horariosRoutes   = require("./src/horarios/horarios.routes");
+const bloqueosRoutes   = require("./src/bloqueos/bloqueos.routes");
+const { errorHandler } = require("./middleware/error.middleware");
 
-// Middlewares mínimos
-app.use(express.json());
-
-// Logger de requests
-app.use((req, _res, next) => {
-  const now = new Date().toISOString();
-  console.log(`[${now}] ${req.method} ${req.url}`);
-  next();
-});
-
-const ALLOWED_ORIGINS = ["http://127.0.0.1:5501", "http://localhost:5500"];
+// ── CORS ─────────────────────────────────────────────────────────────────────
+const ALLOWED_ORIGINS = [
+  "http://localhost:4200",   // Angular dev server
+  "http://127.0.0.1:4200",
+  "http://localhost:5500",   // Live Server (VS Code)
+  "http://127.0.0.1:5501",
+];
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error("Not allowed by CORS: " + origin));
+    origin: (origin, callback) => {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      callback(new Error("CORS: origen no permitido → " + origin));
     },
-
-    // Metdos permitidos
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     optionsSuccessStatus: 200,
-  }),
+  })
 );
 
-// Rutas
-app.use("/api/auth", authRoutes);
+// ── Body parser ───────────────────────────────────────────────────────────────
+app.use(express.json());
 
-// Ruta de salud
-app.get("/health", (_req, res) => res.json({ ok: true }));
+// ── Logger ────────────────────────────────────────────────────────────────────
+app.use((req, _res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
 
-async function testConnection() {
-  try {
-    const [rows] = await pool.query("SELECT 1 + 1 AS result"); //Le pide a MySQL que sume 1 + 1, y le ponga el alias result al valor
-    console.log(
-      " Conexión a la base de datos establecida. Resultado:",
-      rows[0].result,
-    );
-  } catch (error) {
-    console.error(" Error al conectar con la base de datos:", error.message);
-  }
-}
+// ── Rutas de la API ───────────────────────────────────────────────────────────
+app.use("/api/auth",      authRoutes);
+app.use("/api/servicios", serviciosRoutes);
+app.use("/api/citas",     citasRoutes);
+app.use("/api/horarios",  horariosRoutes);
+app.use("/api/bloqueos",  bloqueosRoutes);
 
-app.listen(PORT, async () => {
-  console.log(`Servidor escuchando en http://localhost:${PORT}`);
-  await testConnection();
+// ── Health check ──────────────────────────────────────────────────────────────
+app.get("/health", (_req, res) =>
+  res.json({ ok: true, timestamp: new Date().toISOString() })
+);
+
+// ── 404 ───────────────────────────────────────────────────────────────────────
+app.use((_req, res) =>
+  res.status(404).json({ success: false, message: "Ruta no encontrada." })
+);
+
+// ── Error handler global ──────────────────────────────────────────────────────
+app.use(errorHandler);
+
+// ── Iniciar servidor ──────────────────────────────────────────────────────────
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
