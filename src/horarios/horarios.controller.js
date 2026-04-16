@@ -2,6 +2,7 @@ const pool = require("../../config/db");
 const { getConfig }      = require("../configuracion/configuracion.model");
 const { findById: findServicio } = require("../servicios/servicios.model");
 const { calcularDisponibilidad } = require("../../helpers/disponibilidad.helper");
+const { getCitasDelDia } = require("./horarios.model");
 
 /**
  * GET /api/horarios?fecha=YYYY-MM-DD&idServicio=:id
@@ -40,6 +41,8 @@ exports.getHorarios = async (req, res, next) => {
       getConfig(),
     ]);
 
+    console.log("Config:", config)
+
     if (!servicio) {
       return res.status(404).json({ success: false, message: "Servicio no encontrado." });
     }
@@ -58,13 +61,14 @@ exports.getHorarios = async (req, res, next) => {
     }
 
     // ── Obtener citas activas del día ─────────────────────────────────────────
-    const [citasDelDia] = await pool.query(
-      "SELECT hora FROM citas WHERE fecha = ? AND estado != 'cancelada'",
-      [fecha]
-    );
+    const citasDelDia = await getCitasDelDia(fecha);
+
+    console.log("CITAS DEL DIA:", citasDelDia);
 
     // ── Calcular disponibilidad ───────────────────────────────────────────────
     const slots = await calcularDisponibilidad(fecha, servicio, config, citasDelDia);
+    
+    console.log("SLOTS:", slots);
 
     res.json({ success: true, data: slots });
   } catch (err) {

@@ -1,4 +1,5 @@
 const { findActivos } = require("../src/bloqueos/bloqueos.model");
+const { getHorarioPorDia } = require("../src/horarios/horarios.model");
 
 // ── Utilidades de tiempo ──────────────────────────────────────────────────────
 
@@ -101,19 +102,32 @@ async function calcularDisponibilidad(fecha, servicio, config, citasDelDia) {
   const duracionSlot = Number(config.duracion_slot_min);
   const duracionServ = Number(servicio.duracion_min);
 
-  const slots   = generarSlots(config.hora_apertura, config.hora_cierre, duracionSlot, duracionServ);
+  const [y, mo, d] = fecha.split("-").map(Number);
+  const diaSemana = new Date(Date.UTC(y, mo - 1, d)).getUTCDay();
+
+  const horario = await getHorarioPorDia(diaSemana);
+
+  if (!horario || !horario.activo) {
+    return [];
+  }
+
+  const slots   = generarSlots(horario.hora_apertura, horario.hora_cierre, duracionSlot, duracionServ);
   const bloqueos = await findActivos();
 
   // Citas existentes expresadas en minutos para cálculo de solapamiento
-  const citasMin = citasDelDia.map((c) => ({
-    inicio: toMinutos(String(c.hora).substring(0, 5)),
-    fin:    toMinutos(String(c.hora).substring(0, 5)) + duracionSlot,
-  }));
+  const citasMin = citasDelDia.map((c) => {
+    const inicio = toMinutos(String(c.hora).substring(0, 5));
+
+    return {
+      inicio, 
+       fin: inicio + Number(c.duracion_min)
+    };
+  });
 
   return slots.map((hora) => {
     // 1. ¿Está bloqueado por la tabla bloqueos?
     if (estaBloqueado(hora, fecha, duracionServ, bloqueos)) {
-      return { hora, disponible: false };
+      return { hora, disponible: false, visible: true };
     }
 
     // 2. ¿Se solapa con alguna cita existente?
@@ -121,10 +135,22 @@ async function calcularDisponibilidad(fecha, servicio, config, citasDelDia) {
     const slotFin    = slotInicio + duracionServ;
 
     const solapaCita = citasMin.some(
-      ({ inicio, fin }) => slotInicio < fin && slotFin > inicio
+      ({ inicio, fin }) => slotInicio >= inicio && slotInicio < fin
     );
 
-    return { hora, disponible: !solapaCita };
+    if(solapaCita) {
+      return { hora, disponible: false, visible: true};
+    }
+
+    const noCabe = citasMin.some(
+      ({inicio}) => slotFin > inicio && slotInicio < inicio
+    );
+
+    if(noCabe){
+      return { hora, disponible: false, visible: false};
+    }
+
+    return { hora, disponible: true, visible: true };
   });
 }
 
