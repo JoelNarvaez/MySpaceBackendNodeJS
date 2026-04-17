@@ -14,6 +14,6 @@ router.get("/usuario/:email", verifyToken, getCitasByEmail);
 router.post("/", verifyToken, createCita);
 
 // Usuario: cancelar su cita
-router.delete("/:id", verifyToken, cancelCita);
+router.patch("/:id/cancelar", verifyToken, cancelCita);
 
 module.exports = router;

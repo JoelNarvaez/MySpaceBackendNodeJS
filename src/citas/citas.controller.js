@@ -86,10 +86,10 @@ exports.createCita = async (req, res, next) => {
 };
 
 /**
- * DELETE /api/citas/:id
+ * PATCH /api/citas/:id/cancelar
  * Usuario autenticado — cancela su propia cita.
  * El admin puede cancelar cualquier cita.
- * Body (opcional): { motivo }
+ * Body: { motivo_cancelacion }
  */
 exports.cancelCita = async (req, res, next) => {
   try {
@@ -111,7 +111,16 @@ exports.cancelCita = async (req, res, next) => {
       return res.status(409).json({ success: false, message: "La cita ya fue cancelada." });
     }
 
-    await cancel(req.params.id, req.body?.motivo || null);
+    const motivoCancelacion = req.body?.motivo_cancelacion?.trim();
+
+    if (!motivoCancelacion || motivoCancelacion.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "El motivo de cancelacion es obligatorio.",
+      });
+    }
+
+    await cancel(req.params.id, motivoCancelacion);
     res.json({ success: true, message: "Cita cancelada exitosamente." });
   } catch (err) {
     next(err);
