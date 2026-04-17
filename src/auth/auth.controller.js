@@ -8,7 +8,7 @@ function generateToken(user) {
   return jwt.sign(
     { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "8h" }
+    { expiresIn: Number(process.env.JWT_EXPIRES_IN) || "8h" }
   );
 }
 
