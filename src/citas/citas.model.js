@@ -39,12 +39,12 @@ async function findById(id) {
 }
 
 /**
- * Verifica si ya existe una cita activa (no cancelada) en esa fecha y hora.
+ * Verifica si ya existe una cita activa en esa fecha y hora.
  * Usado antes de insertar para prevenir doble reserva.
  */
 async function findByFechaHora(fecha, hora) {
   const [rows] = await pool.query(
-    "SELECT id FROM citas WHERE fecha = ? AND hora = ? AND estado != 'cancelada'",
+    "SELECT id FROM citas WHERE fecha = ? AND hora = ? AND estado IN ('pendiente', 'confirmada')",
     [fecha, hora]
   );
   return rows[0] || null;

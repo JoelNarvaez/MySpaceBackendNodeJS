@@ -13,7 +13,7 @@ async function getCitasDelDia(fecha) {
     `SELECT c.hora, s.duracion_min
      FROM citas c
      JOIN servicios s ON c.id_servicio = s.id
-     WHERE c.fecha = ? AND c.estado != 'cancelada'`,
+     WHERE c.fecha = ? AND c.estado IN ('pendiente', 'confirmada')`,
     [fecha]
   );
   return rows;
