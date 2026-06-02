@@ -1,4 +1,19 @@
-const { findAll, create, remove } = require("./bloqueos.model");
+const { findAll, findPublico, create, remove } = require('./bloqueos.model');
+
+/**
+ * GET /api/bloqueos/publico
+ * Público — devuelve sólo los campos necesarios para deshabilitar días en el calendario.
+ * No requiere autenticación.
+ */
+exports.getBloqueoPublico = async (req, res, next) => {
+  try {
+    const bloqueos = await findPublico();
+    res.json({ success: true, data: bloqueos });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 /**
  * GET /api/bloqueos

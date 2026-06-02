@@ -22,6 +22,18 @@ async function findActivos() {
 }
 
 /**
+ * Devuelve solo los campos necesarios para el calendario público.
+ * No incluye motivo ni datos sensibles.
+ */
+async function findPublico() {
+  const [rows] = await pool.query(
+    "SELECT tipo, fecha, dia_semana FROM bloqueos WHERE activo = 1 AND tipo = 'dia'"
+  );
+  return rows;
+}
+
+
+/**
  * Crea un nuevo bloqueo.
  * tipo: 'dia' | 'horario'
  * - tipo 'dia' + fecha     → bloquea ese día específico
@@ -56,4 +68,4 @@ async function remove(id) {
   return result.affectedRows;
 }
 
-module.exports = { findAll, findActivos, create, remove };
+module.exports = { findAll, findActivos, findPublico, create, remove };
