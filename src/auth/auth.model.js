@@ -47,4 +47,43 @@ async function createUser({ nombre, email, telefono, password_hash, rol = "usuar
   return result.insertId;
 }
 
-module.exports = { findByEmail, findById, emailExists, createUser };
+// recuperación de contraseña
+
+async function saveResetToken(email, token, expires) {
+  await pool.query(
+    `UPDATE usuarios
+     SET reset_password_token = ?,
+         reset_password_expires = ?
+     WHERE email = ?`,
+    [token, expires, email]
+  );
+}
+
+async function findByResetToken(token) {
+  const [rows] = await pool.query(
+    `SELECT *
+     FROM usuarios
+     WHERE reset_password_token = ?
+       AND reset_password_expires > NOW()
+       AND activo = 1`,
+    [token]
+  );
+
+  return rows[0] || null;
+}
+
+async function updatePassword(userId, password_hash) {
+  await pool.query(
+    `UPDATE usuarios
+     SET password_hash = ?,
+         reset_password_token = NULL,
+         reset_password_expires = NULL
+     WHERE id = ?`,
+    [password_hash, userId]
+  );
+}
+
+module.exports = { findByEmail, findById, emailExists, createUser,
+  // recuperación de contraseña
+  saveResetToken, findByResetToken, updatePassword
+};
