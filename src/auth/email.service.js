@@ -1,27 +1,10 @@
 const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false,
-
-  auth: {
-    user: process.env.BREVO_SMTP_USER,
-    pass: process.env.BREVO_SMTP_PASS
-  }
-});
-
 async function sendResetPasswordEmail(email, resetUrl) {
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderEmail = process.env.SENDER_EMAIL || "correoproy.pruebas@gmail.com";
 
-  await transporter.sendMail({
-
-    from: `"My Space" <${process.env.SENDER_EMAIL}>`,
-
-    to: email,
-
-    subject: "Recuperación de contraseña",
-
-    html: `
+  const html = `
         <div style="
         font-family: Arial, sans-serif;
         background-color: #F5F5F4;
@@ -103,7 +86,7 @@ async function sendResetPasswordEmail(email, resetUrl) {
                 color:#777;
                 font-size:14px;
                 line-height:1.6;
-            ">
+                ">
                 Este enlace expirará en <strong>1 hora</strong>.
             </p>
 
@@ -130,10 +113,37 @@ async function sendResetPasswordEmail(email, resetUrl) {
         </div>
 
         </div>
-        `
+        `;
+
+  // Hacemos la petición HTTP a la API de Brevo
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "accept": "application/json",
+      "api-key": apiKey,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      sender: {
+        name: "My Space",
+        email: senderEmail
+      },
+      to: [
+        {
+          email: email
+        }
+      ],
+      subject: "Recuperación de contraseña",
+      htmlContent: html
+    })
   });
 
-  console.log(`Correo enviado a ${email}`);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Error al enviar correo mediante Brevo: ${response.status} - ${errorText}`);
+  }
+
+  console.log(`Correo enviado a ${email} mediante Brevo API`);
 }
 
 module.exports = {
