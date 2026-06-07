@@ -21,7 +21,8 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1:5501",
   "https://my-space-frontend-angulart.vercel.app",
   "http://my-space-frontend-angulart.vercel.app",
-];
+  process.env.FRONTEND_URL
+].filter(Boolean);
 
 const ALLOWED_ORIGIN_PATTERNS = [
   /^https:\/\/my-space-frontend-angulart-[a-z0-9-]+-joels-projects-3a752f3d\.vercel\.app$/,
