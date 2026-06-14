@@ -1,10 +1,25 @@
 const pool = require("../../config/db");
 
 /**
+ * Marca como 'completada' todas las citas pendientes/confirmadas
+ * cuya hora ya pasó (fecha + hora <= NOW()).
+ * Se llama antes de cada consulta para mantener el estado siempre actualizado.
+ */
+async function autoCompletarVencidas() {
+  await pool.query(
+    `UPDATE citas
+     SET estado = 'completada', actualizado_en = NOW()
+     WHERE estado IN ('pendiente', 'confirmada')
+       AND TIMESTAMP(fecha, hora) < NOW()`
+  );
+}
+
+/**
  * Devuelve todas las citas con el nombre del servicio (JOIN).
  * Usado por el panel admin.
  */
 async function findAll() {
+  await autoCompletarVencidas();
   const [rows] = await pool.query(
     `SELECT c.*, s.nombre AS nombre_servicio
      FROM citas c
@@ -19,6 +34,7 @@ async function findAll() {
  * Incluye nombre del servicio.
  */
 async function findByEmail(email) {
+  await autoCompletarVencidas();
   const [rows] = await pool.query(
     `SELECT c.*, s.nombre AS nombre_servicio
      FROM citas c
@@ -78,4 +94,4 @@ async function cancel(id, motivo = null) {
   return result.affectedRows;
 }
 
-module.exports = { findAll, findByEmail, findById, findByFechaHora, create, cancel };
+module.exports = { findAll, findByEmail, findById, findByFechaHora, create, cancel, autoCompletarVencidas };
