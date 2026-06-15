@@ -66,7 +66,21 @@ exports.getHorarios = async (req, res, next) => {
     console.log("CITAS DEL DIA:", citasDelDia);
 
     // ── Calcular disponibilidad ───────────────────────────────────────────────
-    const slots = await calcularDisponibilidad(fecha, servicio, config, citasDelDia);
+    let slots = await calcularDisponibilidad(fecha, servicio, config, citasDelDia);
+
+    // ── Si la fecha es hoy, ocultar slots cuya hora ya pasó ──────────────────
+    // Railway corre en UTC; convertimos NOW() a hora local México (UTC-6)
+    const ahoraLocal = new Date(Date.now() - 6 * 60 * 60 * 1000); // UTC-6
+    const ahoraStr = `${String(ahoraLocal.getUTCHours()).padStart(2, '0')}:${String(ahoraLocal.getUTCMinutes()).padStart(2, '0')}`;
+
+    if (fecha === hoy) {
+      slots = slots.map(slot => {
+        if (slot.hora <= ahoraStr) {
+          return { ...slot, disponible: false, visible: false };
+        }
+        return slot;
+      });
+    }
     
     console.log("SLOTS:", slots);
 

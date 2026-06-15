@@ -2,15 +2,18 @@ const pool = require("../../config/db");
 
 /**
  * Marca como 'completada' todas las citas pendientes/confirmadas
- * cuya hora ya pasó (fecha + hora <= NOW()).
- * Se llama antes de cada consulta para mantener el estado siempre actualizado.
+ * cuya hora ya pasó respecto a la hora local de México (UTC-6).
+ * Se llama antes de cada consulta para mantener el estado actualizado.
+ *
+ * IMPORTANTE: Railway corre en UTC. Usamos CONVERT_TZ para comparar
+ * correctamente contra la hora local del negocio (America/Mexico_City).
  */
 async function autoCompletarVencidas() {
   await pool.query(
     `UPDATE citas
      SET estado = 'completada', actualizado_en = NOW()
      WHERE estado IN ('pendiente', 'confirmada')
-       AND TIMESTAMP(fecha, hora) < NOW()`
+       AND TIMESTAMP(fecha, hora) < CONVERT_TZ(NOW(), '+00:00', '-06:00')`
   );
 }
 

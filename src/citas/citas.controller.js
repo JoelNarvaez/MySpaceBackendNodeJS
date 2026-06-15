@@ -111,6 +111,23 @@ exports.cancelCita = async (req, res, next) => {
       return res.status(409).json({ success: false, message: "La cita ya fue cancelada." });
     }
 
+    // Política de cancelación: solo se permite con al menos 24 horas de anticipación
+    // El admin queda exento de esta restricción
+    if (req.user.rol !== "admin") {
+      const fechaStr = String(cita.fecha).substring(0, 10); // YYYY-MM-DD
+      const horaStr  = String(cita.hora).substring(0, 5);   // HH:MM
+      const citaTimestamp = new Date(`${fechaStr}T${horaStr}:00`);
+      const horasRestantes = (citaTimestamp - new Date()) / (1000 * 60 * 60);
+
+      if (horasRestantes < 24) {
+        return res.status(400).json({
+          success: false,
+          message: "No es posible cancelar con menos de 24 horas de anticipación. Comunícate directamente con el spa.",
+          codigo: "CANCELACION_FUERA_DE_TIEMPO"
+        });
+      }
+    }
+
     const motivoCancelacion = req.body?.motivo_cancelacion?.trim();
 
     if (!motivoCancelacion || motivoCancelacion.length < 8) {
